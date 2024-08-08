@@ -1,11 +1,11 @@
 use std::{path::Path, rc::Rc, sync::Arc};
 
 use floem::{
-    cosmic_text::Style as FontStyle,
     event::{Event, EventListener},
     peniko::Color,
     reactive::{create_rw_signal, ReadSignal, RwSignal},
     style::{AlignItems, CursorStyle, Position, Style},
+    text::Style as FontStyle,
     views::{
         container, dyn_stack, label, scroll, stack, svg, virtual_stack, Container,
         Decorators, VirtualDirection, VirtualItemSize,
@@ -89,7 +89,7 @@ pub fn file_explorer_panel(
             container(
                 new_file_node_view(data, source_control).style(|s| s.absolute()),
             )
-            .style(|s| s.size_full().line_height(1.6)),
+            .style(|s| s.size_full().line_height(1.8)),
             window_tab_data
                 .panel
                 .section_open(PanelSection::FileExplorer),
@@ -560,6 +560,6 @@ fn open_editors_view(window_tab_data: Rc<WindowTabData>) -> impl View {
         )
         .style(|s| s.flex_col().width_pct(100.0)),
     )
-    .style(|s| s.absolute().size_full().line_height(1.6))
+    .style(|s| s.absolute().size_full().line_height(1.8))
     .debug_name("Open Editors")
 }

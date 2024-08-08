@@ -10,11 +10,8 @@ use lapce_core::directory::Directory;
 use crate::{tracing::*, update::ReleaseInfo};
 
 fn get_github_api(url: &str) -> Result<String> {
-    let resp = reqwest::blocking::ClientBuilder::new()
-        .user_agent(format!("Lapce/{}", lapce_core::meta::VERSION))
-        .build()?
-        .get(url)
-        .send()?;
+    let user_agent = format!("Lapce/{}", lapce_core::meta::VERSION);
+    let resp = lapce_proxy::get_url(url, Some(user_agent.as_str()))?;
     if !resp.status().is_success() {
         return Err(anyhow!("get release info failed {}", resp.text()?));
     }
@@ -64,37 +61,37 @@ pub fn find_grammar_release() -> Result<ReleaseInfo> {
     Ok(release.to_owned())
 }
 
-pub fn fetch_grammars(release: &ReleaseInfo) -> Result<()> {
+pub fn fetch_grammars(release: &ReleaseInfo) -> Result<bool> {
     let dir = Directory::grammars_directory()
         .ok_or_else(|| anyhow!("can't get grammars directory"))?;
 
     let file_name = format!("grammars-{}-{}", env::consts::OS, env::consts::ARCH);
 
-    download_release(dir, release, &file_name)?;
+    let updated = download_release(dir, release, &file_name)?;
 
     trace!(TraceLevel::INFO, "Successfully downloaded grammars");
 
-    Ok(())
+    Ok(updated)
 }
 
-pub fn fetch_queries(release: &ReleaseInfo) -> Result<()> {
+pub fn fetch_queries(release: &ReleaseInfo) -> Result<bool> {
     let dir = Directory::queries_directory()
         .ok_or_else(|| anyhow!("can't get queries directory"))?;
 
     let file_name = "queries";
 
-    download_release(dir, release, file_name)?;
+    let updated = download_release(dir, release, file_name)?;
 
     trace!(TraceLevel::INFO, "Successfully downloaded queries");
 
-    Ok(())
+    Ok(updated)
 }
 
 fn download_release(
     dir: PathBuf,
     release: &ReleaseInfo,
     file_name: &str,
-) -> Result<()> {
+) -> Result<bool> {
     if !dir.exists() {
         fs::create_dir(&dir)?;
     }
@@ -108,12 +105,12 @@ fn download_release(
     };
 
     if release_version == current_version {
-        return Ok(());
+        return Ok(false);
     }
 
     for asset in &release.assets {
         if asset.name.starts_with(file_name) {
-            let mut resp = reqwest::blocking::get(&asset.browser_download_url)?;
+            let mut resp = lapce_proxy::get_url(&asset.browser_download_url, None)?;
             if !resp.status().is_success() {
                 return Err(anyhow!("download file error {}", resp.text()?));
             }
@@ -140,5 +137,5 @@ fn download_release(
             fs::write(dir.join("version"), &release_version)?;
         }
     }
-    Ok(())
+    Ok(true)
 }
